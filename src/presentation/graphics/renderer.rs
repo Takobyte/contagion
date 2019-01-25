@@ -16,7 +16,12 @@ use sdl2::keyboard::Keycode;
 const WIDTH: u32 = 1024;
 const HEIGHT: u32 = 768;
 
-pub fn create_window() {
+pub fn renderer() {
+    // TODO: initialize here
+    // 1. player
+    // 2. zombies
+    // 3. map
+
     use glium_sdl2::DisplayBuild;
     // initialize SDL library
     let sdl_context = sdl2::init().unwrap();
@@ -58,15 +63,6 @@ pub fn create_window() {
 
     let program = glium::Program::from_source(&window, include_str!("triangle.vert"), include_str!("triangle.frag"), None).unwrap();
 
-    // set up vertex buffer
-
-
-    // set up vertex array object
-
-
-    // set up shared state for window
-
-
     // main loop
     let mut running = true;
     let mut event_pump = sdl_context.event_pump().unwrap();
@@ -78,12 +74,16 @@ pub fn create_window() {
                     &Default::default()).unwrap();
         target.finish().unwrap();
 
-        // Event loop: polls for events sent to all windows
+        // calculate time
+        let time_now = Instant::now();
+        let elapsed_t = time.elapsed();
+        time = time_now;
 
+        // Event loop: polls for events sent to all windows
         for event in event_pump.poll_iter() {
             use sdl2::event::Event;
-
             match event {
+                // TODO: key inputs
                 Event::Quit { .. } => {
                     running = false;
                 },
@@ -91,33 +91,4 @@ pub fn create_window() {
             }
         }
     }
-//    'running: loop {
-//        for event in event_pump.poll_iter() {
-//            match event {
-//                // TODO: key input
-//                sdl2::event::Event::Quit { .. } => break 'running,
-//                _ => {}
-//            }
-//        }
-//
-////        unsafe {
-////            gl::Clear(gl::COLOR_BUFFER_BIT);
-////        }
-//
-//        let time_now = Instant::now();
-//        let elapsed_t = time.elapsed();
-//        time = time_now;
-//
-//        // TODO: draw other objects
-//        // ex: object.update(time);
-//
-//        // draw triangle example
-//
-//        let mut target = window.draw();
-//        target.clear_color(0.0, 0.0, 1.0, 1.0);
-//        target.draw(&vertex_buffer, &indices, &program, &glium::uniforms::EmptyUniforms,
-//                    &Default::default()).unwrap();
-//        target.finish().unwrap();
-//
-//    }
 }
