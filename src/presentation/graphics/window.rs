@@ -4,6 +4,13 @@ extern crate sdl2;
 use crate::presentation::graphics::render_gl;
 
 use std::ffi::CString;
+use std::{thread, time};
+use sdl2::pixels::Color;
+use sdl2::rect::{Point, Rect};
+use std::time::Instant;
+
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
 
 const WIDTH: u32 = 1024;
 const HEIGHT: u32 = 768;
@@ -44,7 +51,9 @@ pub fn create_window() {
     let shader_program = render_gl::Program::from_shaders(&[vs, fs]).unwrap();
 
     // set up vertex buffer object
-    let vertices: Vec<f32> = vec![-0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.0, 0.5, 0.0];
+    let vertices: Vec<f32> = vec![-1.0, -1.0, 0.0,  // Vertex 1 (X, Y, Z)
+                                   1.0, -1.0, 0.0,  // Vertex 2 (X, Y, Z)
+                                   0.0,  1.0, 0.0]; // Vertex 3 (X, Y, Z)
 
     let mut vbo: gl::types::GLuint = 0;
     unsafe {
@@ -87,17 +96,18 @@ pub fn create_window() {
     // set up shared state for window
 
     unsafe {
-        gl::Viewport(0, 0, 1024, 768);
-        gl::ClearColor(0.3, 0.3, 0.5, 1.0);
+        gl::Viewport(0, 0, 1024, 768); // viewport dimension
+        gl::ClearColor(0.3, 0.3, 0.5, 1.0); // background color
     }
 
     // main loop
 
     let mut event_pump = sdl.event_pump().unwrap();
-    'main: loop {
+    'running: loop {
         for event in event_pump.poll_iter() {
             match event {
-                sdl2::event::Event::Quit { .. } => break 'main,
+                // TODO: key input
+                sdl2::event::Event::Quit { .. } => break 'running,
                 _ => {}
             }
         }
@@ -106,8 +116,10 @@ pub fn create_window() {
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
 
-        // draw triangle
+        // TODO: draw other objects
+        // ex: object.update(time);
 
+        // draw triangle example
         shader_program.set_used();
         unsafe {
             gl::BindVertexArray(vao);
