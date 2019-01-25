@@ -17,12 +17,16 @@ const HEIGHT: u32 = 768;
 
 pub fn create_window() {
     // initialize SDL library
-    let sdl = sdl2::init().unwrap();
+    let sdl_context = sdl2::init().unwrap();
     // initialize video subsystem
-    let video_subsystem = sdl.video().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
     // OpenGL context getters and setters
     let gl_attr = video_subsystem.gl_attr();
+    let mut pause_time = false;
+
     gl_attr.set_context_profile(sdl2::video::GLProfile::Core); // setting type of GL context
+    // Set the context into debug mode
+    gl_attr.set_context_flags().debug().set();
     gl_attr.set_context_version(4, 5); // specifying OpenGL version
 
     // creating window
@@ -39,7 +43,7 @@ pub fn create_window() {
 
     // create OpenGL context
     let gl_context = window.gl_create_context().unwrap();
-    gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
+    gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
 
     // setting up shader
     let vs =
@@ -104,7 +108,7 @@ pub fn create_window() {
 
     // main loop
 
-    let mut event_pump = sdl.event_pump().unwrap();
+    let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
