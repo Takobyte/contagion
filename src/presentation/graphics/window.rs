@@ -35,6 +35,8 @@ pub fn create_window() {
         .build()
         .unwrap();
 
+    let mut time = Instant::now();
+
     // create OpenGL context
     let gl_context = window.gl_create_context().unwrap();
     gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
@@ -51,12 +53,12 @@ pub fn create_window() {
     let shader_program = render_gl::Program::from_shaders(&[vs, fs]).unwrap();
 
     // set up vertex buffer object
-    let vertices: Vec<f32> = vec![-1.0, -1.0, 0.0,  // Vertex 1 (X, Y, Z)
-                                   1.0, -1.0, 0.0,  // Vertex 2 (X, Y, Z)
-                                   0.0,  1.0, 0.0]; // Vertex 3 (X, Y, Z)
+        let vertices: Vec<f32> = vec![-1.0, -1.0, 0.0,  // Vertex 1 (X, Y, Z)
+                                      1.0, -1.0, 0.0,  // Vertex 2 (X, Y, Z)
+                                      0.0,  1.0, 0.0]; // Vertex 3 (X, Y, Z)
 
-    let mut vbo: gl::types::GLuint = 0;
-    unsafe {
+        let mut vbo: gl::types::GLuint = 0;
+        unsafe {
         gl::GenBuffers(1, &mut vbo);
     }
 
@@ -115,6 +117,10 @@ pub fn create_window() {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
+
+        let time_now = Instant::now();
+        let elapsed_t = time.elapsed();
+        time = time_now;
 
         // TODO: draw other objects
         // ex: object.update(time);
