@@ -1,13 +1,14 @@
-extern crate gl;
+extern crate glium;
+extern crate glium_sdl2;
 extern crate sdl2;
-
-use crate::presentation::graphics::render_gl;
 
 use std::ffi::CString;
 use std::{thread, time};
 use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
 use std::time::Instant;
+
+use glium::Surface;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -16,6 +17,7 @@ const WIDTH: u32 = 1024;
 const HEIGHT: u32 = 768;
 
 pub fn create_window() {
+    use glium_sdl2::DisplayBuild;
     // initialize SDL library
     let sdl_context = sdl2::init().unwrap();
     // initialize video subsystem
@@ -33,113 +35,89 @@ pub fn create_window() {
     // available functionality: https://nukep.github.io/rust-sdl2/sdl2/video/struct.WindowBuilder.html#method.resizable
     let window = video_subsystem
         .window("Contagion", WIDTH, HEIGHT)
-        .opengl()
         .resizable()
-        .position_centered()
-        .build()
+        .build_glium()
         .unwrap();
+
+    #[derive(Copy, Clone)]
+    struct Vertex {
+        position: [f32; 2],
+    }
+
+    implement_vertex!(Vertex, position);
+
+    let vertex1 = Vertex { position: [-0.5, -0.5] };
+    let vertex2 = Vertex { position: [ 0.0,  0.5] };
+    let vertex3 = Vertex { position: [ 0.5, -0.25] };
+    let shape = vec![vertex1, vertex2, vertex3];
+
+    let vertex_buffer = glium::VertexBuffer::new(&window, &shape).unwrap();
+    let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
     let mut time = Instant::now();
 
-    // create OpenGL context
-    let gl_context = window.gl_create_context().unwrap();
-    gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
+    let program = glium::Program::from_source(&window, include_str!("triangle.vert"), include_str!("triangle.frag"), None).unwrap();
 
-    // setting up shader
-    let vs =
-        render_gl::Shader::from_vert_source(&CString::new(include_str!("triangle.vert")).unwrap())
-            .unwrap();
+    // set up vertex buffer
 
-    let fs =
-        render_gl::Shader::from_frag_source(&CString::new(include_str!("triangle.frag")).unwrap())
-            .unwrap();
-
-    let shader_program = render_gl::Program::from_shaders(&[vs, fs]).unwrap();
-
-    // set up vertex buffer object
-        let vertices: Vec<f32> = vec![-1.0, -1.0, 0.0,  // Vertex 1 (X, Y, Z)
-                                      1.0, -1.0, 0.0,  // Vertex 2 (X, Y, Z)
-                                      0.0,  1.0, 0.0]; // Vertex 3 (X, Y, Z)
-
-        let mut vbo: gl::types::GLuint = 0;
-        unsafe {
-        gl::GenBuffers(1, &mut vbo);
-    }
-
-    unsafe {
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::BufferData(
-            gl::ARRAY_BUFFER,                                                       // target
-            (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr, // size of data in bytes
-            vertices.as_ptr() as *const gl::types::GLvoid, // pointer to data
-            gl::STATIC_DRAW,                               // usage
-        );
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-    }
 
     // set up vertex array object
-    let mut vao: gl::types::GLuint = 0;
-    unsafe {
-        gl::GenVertexArrays(1, &mut vao);
-    }
 
-    unsafe {
-        gl::BindVertexArray(vao);
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::EnableVertexAttribArray(0); // this is "layout (location = 0)" in vertex shader
-        gl::VertexAttribPointer(
-            0,         // index of the generic vertex attribute ("layout (location = 0)")
-            3,         // the number of components per generic vertex attribute
-            gl::FLOAT, // data type
-            gl::FALSE, // normalized (int-to-float conversion)
-            (3 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
-            std::ptr::null(),                                     // offset of the first component
-        );
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-        gl::BindVertexArray(0);
-    }
 
     // set up shared state for window
 
-    unsafe {
-        gl::Viewport(0, 0, 1024, 768); // viewport dimension
-        gl::ClearColor(0.3, 0.3, 0.5, 1.0); // background color
-    }
 
     // main loop
-
+    let mut running = true;
     let mut event_pump = sdl_context.event_pump().unwrap();
-    'running: loop {
+    while running {
+        let mut target = window.draw();
+        // do drawing here...
+        target.clear_color(0.0, 0.0, 1.0, 1.0);
+        target.draw(&vertex_buffer, &indices, &program, &glium::uniforms::EmptyUniforms,
+                    &Default::default()).unwrap();
+        target.finish().unwrap();
+
+        // Event loop: polls for events sent to all windows
+
         for event in event_pump.poll_iter() {
+            use sdl2::event::Event;
+
             match event {
-                // TODO: key input
-                sdl2::event::Event::Quit { .. } => break 'running,
-                _ => {}
+                Event::Quit { .. } => {
+                    running = false;
+                },
+                _ => ()
             }
         }
-
-        unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT);
-        }
-
-        let time_now = Instant::now();
-        let elapsed_t = time.elapsed();
-        time = time_now;
-
-        // TODO: draw other objects
-        // ex: object.update(time);
-
-        // draw triangle example
-        shader_program.set_used();
-        unsafe {
-            gl::BindVertexArray(vao);
-            gl::DrawArrays(
-                gl::TRIANGLES, // mode
-                0,             // starting index in the enabled arrays
-                3,             // number of indices to be rendered
-            );
-        }
-
-        window.gl_swap_window();
     }
+//    'running: loop {
+//        for event in event_pump.poll_iter() {
+//            match event {
+//                // TODO: key input
+//                sdl2::event::Event::Quit { .. } => break 'running,
+//                _ => {}
+//            }
+//        }
+//
+////        unsafe {
+////            gl::Clear(gl::COLOR_BUFFER_BIT);
+////        }
+//
+//        let time_now = Instant::now();
+//        let elapsed_t = time.elapsed();
+//        time = time_now;
+//
+//        // TODO: draw other objects
+//        // ex: object.update(time);
+//
+//        // draw triangle example
+//
+//        let mut target = window.draw();
+//        target.clear_color(0.0, 0.0, 1.0, 1.0);
+//        target.draw(&vertex_buffer, &indices, &program, &glium::uniforms::EmptyUniforms,
+//                    &Default::default()).unwrap();
+//        target.finish().unwrap();
+//
+//    }
 }

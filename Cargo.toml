@@ -5,8 +5,9 @@ authors = ["ian <ianmccall93@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-gl = "0.10.0"
-sdl2 = "0.32.1"
+glium_sdl2 = "0.15"
+sdl2 = "0.30"
+glium = "0.18"
 
 [dependencies.glfw]
 git = "https://github.com/bjz/glfw-rs.git"
