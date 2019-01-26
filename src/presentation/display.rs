@@ -23,6 +23,7 @@ pub fn display(state: &State) {
 
             Behaviour::Zombie =>
             // TODO: Draw a zombie
+
                 (),
         }
     }

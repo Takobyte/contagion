@@ -1,7 +1,9 @@
 extern crate glium;
 extern crate glium_sdl2;
 extern crate sdl2;
+extern crate image;
 
+use std::io::Cursor;
 use std::ffi::CString;
 use std::{thread, time};
 use sdl2::pixels::Color;
@@ -42,6 +44,7 @@ pub fn renderer() {
         minor = 5;
     }
 
+    // setup OpenGL profile
     gl_attr.set_context_profile(sdl2::video::GLProfile::Core); // setting type of GL context
     // Set the context into debug mode
     gl_attr.set_context_flags().debug().set();
@@ -55,16 +58,26 @@ pub fn renderer() {
         .build_glium()
         .unwrap();
 
+    // load texture for now
+    // TODO: probably need to refactor this elsewhere for loading other textures
+    let image = image::load(Cursor::new(&include_bytes!("../../assets/zombie-transparent.png")[..]),
+                            image::PNG).unwrap().to_rgba();
+    let image_dimensions = image.dimensions();
+    let image = glium::texture::RawImage2d::from_raw_rgba_reversed(&image.into_raw(), image_dimensions);
+    let texture = glium::texture::Texture2d::new(&window, image).unwrap();
+
+
     #[derive(Copy, Clone)]
     struct Vertex {
         position: [f32; 2],
+        tex_coords: [f32; 2],
     }
 
-    implement_vertex!(Vertex, position);
+    implement_vertex!(Vertex, position, tex_coords);
 
-    let vertex1 = Vertex { position: [-0.5, -0.5] };
-    let vertex2 = Vertex { position: [ 0.0,  0.5] };
-    let vertex3 = Vertex { position: [ 0.5, -0.25] };
+    let vertex1 = Vertex { position: [-0.5, -0.5], tex_coords: [0.0, 0.0] };
+    let vertex2 = Vertex { position: [ 0.0,  0.5], tex_coords: [0.0, 1.0] };
+    let vertex3 = Vertex { position: [ 0.5, -0.5], tex_coords: [1.0, 0.0] };
     let shape = vec![vertex1, vertex2, vertex3];
 
     let vertex_buffer = glium::VertexBuffer::new(&window, &shape).unwrap();
@@ -72,23 +85,31 @@ pub fn renderer() {
 
     let mut time = Instant::now();
 
-    let program = glium::Program::from_source(&window, include_str!("triangle.vert"), include_str!("triangle.frag"), None).unwrap();
+    let program = glium::Program::from_source(&window, include_str!("vs.vert"), include_str!("fs.frag"), None).unwrap();
 
     // main loop
     let mut running = true;
     let mut event_pump = sdl_context.event_pump().unwrap();
     while running {
+        // calculate time
+        let elapsed_t = time.elapsed().as_secs() as f32;
+//        println!("{}", elapsed_t);
+
         let mut target = window.draw();
         // do drawing here...
         target.clear_color(0.0, 0.0, 1.0, 1.0);
-        target.draw(&vertex_buffer, &indices, &program, &glium::uniforms::EmptyUniforms,
+        let uniforms = uniform! {
+            matrix: [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [ elapsed_t/60.0 , 0.0, 0.0, 1.0f32],
+            ],
+            tex: &texture,
+        };
+        target.draw(&vertex_buffer, &indices, &program, &uniforms,
                     &Default::default()).unwrap();
         target.finish().unwrap();
-
-        // calculate time
-        let time_now = Instant::now();
-        let elapsed_t = time.elapsed();
-        time = time_now;
 
         // Event loop: polls for events sent to all windows
         for event in event_pump.poll_iter() {
