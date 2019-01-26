@@ -17,11 +17,6 @@ const WIDTH: u32 = 1024;
 const HEIGHT: u32 = 768;
 
 pub fn renderer() {
-    // TODO: initialize here
-    // 1. player
-    // 2. zombies
-    // 3. map
-
     use glium_sdl2::DisplayBuild;
     // initialize SDL library
     let sdl_context = sdl2::init().unwrap();
@@ -30,6 +25,22 @@ pub fn renderer() {
     // OpenGL context getters and setters
     let gl_attr = video_subsystem.gl_attr();
     let mut pause_time = false;
+
+    // OpenGL version switcher for platform compatibility
+    let mut major = 0;
+    let mut minor = 0;
+    if cfg!(macos) {
+        major = 4;
+        minor = 1;
+    }
+    if cfg!(linux) {
+        major = 4;
+        minor = 1;
+    }
+    if cfg!(windows) {
+        major = 4;
+        minor = 5;
+    }
 
     gl_attr.set_context_profile(sdl2::video::GLProfile::Core); // setting type of GL context
     // Set the context into debug mode
