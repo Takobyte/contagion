@@ -59,9 +59,19 @@ pub fn create_window() -> (glium_sdl2::SDL2Facade, sdl2::EventPump) {
       .resizable()
       .build_glium()
       .unwrap();
+
   let mut event_pump = sdl_context.event_pump().unwrap();
 
   (window, event_pump)
+}
+
+pub fn init_texture(window: &glium_sdl2::SDL2Facade) -> glium::texture::texture2d::Texture2d {
+    let image = image::load(Cursor::new(&include_bytes!("../../assets/zombie-transparent.png")[..]),
+                            image::PNG).unwrap().to_rgba();
+    let image_dimensions = image.dimensions();
+    let image = glium::texture::RawImage2d::from_raw_rgba_reversed(&image.into_raw(), image_dimensions);
+    let texture = glium::texture::Texture2d::new(window, image).unwrap();
+    (texture)
 }
 
 //pub fn load_textures(window: glium_sdl2::SDL2Facade) -> (glium::Program) {
