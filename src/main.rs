@@ -12,40 +12,30 @@ use std::io::Cursor;
 use glium::Surface;
 use std::ffi::CString;
 
-fn init() -> Result<(glium_sdl2::SDL2Facade, sdl2::EventPump), String> {
+
+fn init() -> Result<(glium_sdl2::SDL2Facade, sdl2::EventPump, glium::texture::texture2d::Texture2d, glium::Program,
+                     (glium::VertexBuffer<presentation::graphics::renderer::Vertex>, glium::index::NoIndices)), String> {
     // TODO: initialize music
 
     // initialize window and eventpump
     let window_tuple = presentation::graphics::renderer::create_window();
     let mut window = window_tuple.0;
     let mut event_pump = window_tuple.1;
+
     // load image -> type glium::texture::texture2d::Texture2d
     let texture = presentation::graphics::renderer::init_texture(&window);
+
     // create vertex buffer, indices, shader program
-    #[derive(Copy, Clone)]
-    struct Vertex {
-        position: [f32; 2],
-        tex_coords: [f32; 2],
-    }
-
-    implement_vertex!(Vertex, position, tex_coords);
-    let vertex1 = Vertex { position: [-0.5, -0.5], tex_coords: [0.0, 0.0] };
-    let vertex2 = Vertex { position: [0.0, 0.5], tex_coords: [0.0, 1.0] };
-    let vertex3 = Vertex { position: [0.5, -0.5], tex_coords: [1.0, 0.0] };
-    let shape = vec![vertex1, vertex2, vertex3];
-
-    let vertex_buffer = glium::VertexBuffer::new(&window, &shape).unwrap();
-    let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
-
+    let shader = presentation::graphics::renderer::init_shader(&window);
     let program = glium::Program::from_source(&window, include_str!("./presentation/graphics/vs.vert"),
                                               include_str!("./presentation/graphics/fs.frag"), None).unwrap();
 
-Ok((window, event_pump))
+Ok((window, event_pump, texture ,program, shader))
 }
 
 fn main() {
     // init
-    let (mut window, mut event_pump) = match init() {
+    let (mut window, mut event_pump, mut texture, mut program, mut shader) = match init() {
         // error handler if init fails
         Ok(t) => t,
         Err(err) => {
@@ -53,15 +43,30 @@ fn main() {
             std::process::exit(1);
         },
     };
+    let vertex_buffer = shader.0;
+    let indices = shader.1;
 
     // main game loop
     let mut running = true;
     while running {
         // draw background
         let mut target = window.draw();
+        // do drawing here...
         target.clear_color(0.0, 0.0, 1.0, 1.0);
+        let uniforms = uniform! {
+            matrix: [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [ 0.0 , 0.0, 0.0, 1.0f32],
+            ],
+            tex: &texture,
+        };
+        target.draw(&vertex_buffer, &indices, &program, &uniforms,
+                    &Default::default()).unwrap();
         target.finish().unwrap();
 
+        // Event loop: polls for events sent to all windows
         for event in event_pump.poll_iter() {
             use sdl2::event::Event;
             match event {
